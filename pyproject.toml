@@ -4,13 +4,13 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "funpoetry"
-version = "1.0.2"
+version = "1.0.3"
 description = ""
 authors = [ "farfun <1007530194@qq.com>",]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 toml = "^0.10.2"
 poetry = "^1.8.3"
 
