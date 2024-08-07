@@ -2,7 +2,7 @@ import os.path
 from os import path
 
 
-def __version_upgrade(version, step=64):
+def __version_upgrade(version, step=128):
     if version is None:
         version = "0.0.1"
 
