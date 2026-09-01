@@ -23,4 +23,4 @@ cryptography = ">=49.0.0"
 funpoetry = "funpoetry.command:funpoetry"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.0"
+pytest = "^9.0.3"
