@@ -36,6 +36,14 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
+# Runtime and IDE files
+*.db
+*.rar
+.run/
+logs/
+.idea/
+.vscode/
+
 # Unit test / coverage reports
 htmlcov/
 .tox/

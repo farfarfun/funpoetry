@@ -1,71 +1,114 @@
-import os.path
-from os import path
+"""读取并递增项目版本号。"""
+
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
+import toml
+
+_VersionSource = tuple[bool, Callable[[], str], Callable[[str], None]]
 
 
-def __version_upgrade(version, step=128):
-    if version is None:
-        version = "0.0.1"
+def _next_version(version: str | None, step: int = 128) -> str:
+    """按指定进位值递增三段式版本号。"""
+    if step < 2:
+        raise ValueError("版本进位值必须大于 1")
 
-    version1 = [int(i) for i in version.split(".")]
-    version2 = version1[0] * step * step + version1[1] * step + version1[2] + 1
+    value = version or "0.0.1"
+    try:
+        parts = [int(part) for part in value.split(".")]
+    except ValueError as error:
+        raise ValueError(f"版本号必须是三段非负整数: {value}") from error
 
-    version1[2] = version2 % step
-    version1[1] = int(version2 / step) % step
-    version1[0] = int(version2 / step / step)
+    if len(parts) != 3 or any(part < 0 for part in parts):
+        raise ValueError(f"版本号必须是三段非负整数: {value}")
 
-    return "{}.{}.{}".format(*version1)
-
-
-def method1():
-    version_path = "./script/__version__.md"
-
-    def read():
-        return open(version_path, "r").read()
-
-    def write(version):
-        with open(version_path, "w") as f:
-            f.write(version)
-
-    return os.path.exists(version_path), read, write
+    encoded = parts[0] * step * step + parts[1] * step + parts[2] + 1
+    major, remainder = divmod(encoded, step * step)
+    minor, patch = divmod(remainder, step)
+    return f"{major}.{minor}.{patch}"
 
 
-def method2():
-    toml_path = "./pyproject.toml"
+def _legacy_version_source() -> _VersionSource:
+    version_path = Path("script/__version__.md")
 
-    def read():
-        import toml
+    def read() -> str:
+        return version_path.read_text(encoding="utf-8").strip()
 
-        a = toml.load(toml_path)
-        return a["tool"]["poetry"]["version"]
+    def write(version: str) -> None:
+        version_path.write_text(version, encoding="utf-8")
 
-    def write(version):
-        import toml
-
-        a = toml.load(toml_path)
-        a["tool"]["poetry"]["version"] = version
-        with open(toml_path, "w") as f:
-            toml.dump(a, f)
-
-    return os.path.exists(toml_path), read, write
+    return version_path.exists(), read, write
 
 
-method_list = [method2, method1]
+def _version_table(data: dict[str, Any]) -> dict[str, Any]:
+    project = data.get("project")
+    if isinstance(project, dict) and "version" in project:
+        return project
+
+    poetry = data.get("tool", {}).get("poetry")
+    if isinstance(poetry, dict) and "version" in poetry:
+        return poetry
+
+    raise ValueError("pyproject.toml 未声明 [project].version 或 [tool.poetry].version")
 
 
-def version_read():
-    for method in method_list:
-        exists, read, write = method()
+def _pyproject_source() -> _VersionSource:
+    pyproject_path = Path("pyproject.toml")
+
+    def read() -> str:
+        return str(_version_table(toml.load(pyproject_path))["version"])
+
+    def write(version: str) -> None:
+        data = toml.load(pyproject_path)
+        _version_table(data)["version"] = version
+        with pyproject_path.open("w", encoding="utf-8") as file:
+            toml.dump(data, file)
+
+    return pyproject_path.exists(), read, write
+
+
+_VERSION_SOURCES = (_pyproject_source, _legacy_version_source)
+
+
+def version_read() -> str:
+    """读取当前目录中的项目版本号。
+
+    Returns:
+        PEP 621、Poetry 或旧版版本文件中的版本号。
+
+    Raises:
+        FileNotFoundError: 当前目录不存在受支持的版本源。
+        ValueError: pyproject.toml 存在但未声明版本号。
+    """
+    for source in _VERSION_SOURCES:
+        exists, read, _ = source()
         if exists:
             return read()
-    print("not support")
+    raise FileNotFoundError("未找到 pyproject.toml 或 script/__version__.md")
 
 
-def version_upgrade(args=None, step=64, **kwargs):
-    for method in method_list:
-        exists, read, write = method()
+def version_upgrade(
+    args: object | None = None, step: int = 64, **kwargs: object
+) -> str:
+    """读取、递增并写回当前目录中的项目版本号。
+
+    Args:
+        args: 命令行参数对象，保留用于 CLI 调用兼容。
+        step: 次版本号和修订号的进位值。
+        **kwargs: 保留用于调用兼容的额外参数。
+
+    Returns:
+        写回后的新版本号。
+
+    Raises:
+        FileNotFoundError: 当前目录不存在受支持的版本源。
+        ValueError: 版本号或进位值无效。
+    """
+    for source in _VERSION_SOURCES:
+        exists, read, write = source()
         if exists:
-            version1 = read()
-            version2 = __version_upgrade(version1, step=step)
-            write(version2)
-            return version2
-    print("not support")
+            version = _next_version(read(), step=step)
+            write(version)
+            return version
+    raise FileNotFoundError("未找到 pyproject.toml 或 script/__version__.md")
