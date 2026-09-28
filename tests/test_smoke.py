@@ -96,6 +96,16 @@ def test_version_upgrade_rejects_invalid_version(tmp_path, monkeypatch):
         version_upgrade()
 
 
+def test_version_upgrade_reports_invalid_toml_path(tmp_path, monkeypatch):
+    from funpoetry.version import version_upgrade
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "pyproject.toml").write_text("[project\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="pyproject.toml"):
+        version_upgrade()
+
+
 def test_cli_help_exits_cleanly(monkeypatch):
     from funpoetry.command import funpoetry
 

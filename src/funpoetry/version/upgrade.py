@@ -9,7 +9,7 @@ import toml
 _VersionSource = tuple[bool, Callable[[], str], Callable[[str], None]]
 
 
-def _next_version(version: str | None, step: int = 128) -> str:
+def _next_version(version: str | None, step: int = 64) -> str:
     """按指定进位值递增三段式版本号。"""
     if step < 2:
         raise ValueError("版本进位值必须大于 1")
@@ -57,13 +57,19 @@ def _pyproject_source() -> _VersionSource:
     pyproject_path = Path("pyproject.toml")
 
     def read() -> str:
-        return str(_version_table(toml.load(pyproject_path))["version"])
+        try:
+            return str(_version_table(toml.load(pyproject_path))["version"])
+        except (OSError, toml.TomlDecodeError, ValueError) as error:
+            raise ValueError(f"无法读取版本文件 {pyproject_path}: {error}") from error
 
     def write(version: str) -> None:
-        data = toml.load(pyproject_path)
-        _version_table(data)["version"] = version
-        with pyproject_path.open("w", encoding="utf-8") as file:
-            toml.dump(data, file)
+        try:
+            data = toml.load(pyproject_path)
+            _version_table(data)["version"] = version
+            with pyproject_path.open("w", encoding="utf-8") as file:
+                toml.dump(data, file)
+        except (OSError, toml.TomlDecodeError, ValueError) as error:
+            raise ValueError(f"无法更新版本文件 {pyproject_path}: {error}") from error
 
     return pyproject_path.exists(), read, write
 
