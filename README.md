@@ -26,6 +26,24 @@ uv sync --dev
 uv run pytest
 ```
 
+## 发布
+
+发布前执行测试和代码检查：
+
+```bash
+uv run ruff check .
+uv run ruff format --check .
+uv run pytest
+```
+
+通过后在项目根目录执行完整发布流程：
+
+```bash
+uv run funbuild build
+```
+
+该命令由 `funbuild` 统一完成版本递增、构建、安装校验、发布、推送和 Git 标签创建。
+
 ---
 
 ## 关于 farfarfun
