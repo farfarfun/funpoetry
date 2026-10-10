@@ -165,6 +165,9 @@ def test_cli_version_upgrade_subcommand(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(sys, "argv", ["funpoetry", "version-upgrade"])
 
-    funpoetry()
+    with pytest.raises(SystemExit) as error:
+        funpoetry()
+
+    assert error.value.code == 0
 
     assert toml.load(pyproject)["project"]["version"] == "0.0.2"

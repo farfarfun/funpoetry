@@ -11,7 +11,7 @@ requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "farfun", email = "1007530194@qq.com" }]
-dependencies = ["toml>=0.10.2,<0.11.0"]
+dependencies = ["toml>=0.10.2,<0.11.0", "typer>=0.12"]
 
 [project.urls]
 Organization = "https://github.com/farfarfun"

@@ -1,8 +1,25 @@
 """funpoetry 命令行入口。"""
 
-import argparse
+import typer
 
 from funpoetry.version import version_upgrade
+
+app = typer.Typer(help="更新项目版本号")
+
+
+@app.callback()
+def main() -> None:
+    """更新项目版本号。"""
+
+
+@app.command("version-upgrade")
+def version_upgrade_command() -> None:
+    """递增当前项目版本号。"""
+    try:
+        version_upgrade()
+    except (FileNotFoundError, ValueError) as error:
+        typer.echo(f"错误: {error}", err=True)
+        raise typer.Exit(2) from error
 
 
 def funpoetry() -> None:
@@ -14,15 +31,4 @@ def funpoetry() -> None:
     Raises:
         SystemExit: 参数无效或子命令执行失败时以非零状态退出。
     """
-    parser = argparse.ArgumentParser(prog="funpoetry", description="更新项目版本号")
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    # 添加子命令
-    upgrade_parser = subparsers.add_parser("version-upgrade", help="递增当前项目版本号")
-    upgrade_parser.set_defaults(func=version_upgrade)
-
-    args = parser.parse_args()
-    try:
-        args.func(args)
-    except (FileNotFoundError, ValueError) as error:
-        parser.error(str(error))
+    app()
